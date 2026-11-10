@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Install Python & dependencies
+        run: |
+          uv venv --python ${{ matrix.python-version }} .venv
+          uv pip install -e ".[dev]"
+      - name: Run pytest suite
+        run: .venv/bin/pytest -v
+      - name: Verify CLI commands
+        run: |
+          .venv/bin/sardegna-radar init-db --db-path /tmp/radar.db
+          .venv/bin/sardegna-radar scan --demo --db-path /tmp/radar.db
+          .venv/bin/sardegna-radar leads --db-path /tmp/radar.db
+          .venv/bin/sardegna-radar stats --db-path /tmp/radar.db

@@ -1,0 +1,6 @@
+# Ignore runtime SQLite files inside data/ while keeping directory tracked
+*.db
+*.db-shm
+*.db-wal
+*.md
+!/.gitignore
