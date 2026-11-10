@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling>=1.24.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sardegna-b2b-radar"
+version = "0.1.0"
+description = "Hybrid Reverse-API & Adaptive Scrapling B2B Tender and Regional Grant Intelligence Radar for Sardinia"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "MMorittu", email = "MMorittu@users.noreply.github.com" },
+]
+keywords = ["procurement", "sardinia", "b2b", "scrapling", "anac", "tenders", "cav"]
+dependencies = [
+    "scrapling>=0.4.15",
+    "httpx>=0.28.1",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "typer>=0.12.3",
+    "rich>=13.7.1",
+]
+
+[project.optional-dependencies]
+mcp = [
+    "scrapling[ai]>=0.4.15",
+]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.7",
+    "pytest-httpx>=0.36.0",
+]
+
+[project.scripts]
+sardegna-radar = "sardegna_radar.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sardegna_radar"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra -q"
