@@ -1,4 +1,4 @@
-"""Application configuration backed by Pydantic Settings (EDILMORITTU S.R.L.)."""
+"""Application configuration backed by Pydantic Settings."""
 
 from __future__ import annotations
 
@@ -91,21 +91,21 @@ class RadarSettings(BaseSettings):
         validation_alias=AliasChoices("LLM_MODEL", "llm_model"),
     )
 
-    # Real Company Ground Truth — EDILMORITTU S.R.L. (Silanus, NU)
+    # Configurable Company Ground Truth (Sardinian Precast Concrete & Construction Supplier)
     company_name: str = Field(
-        default="EDILMORITTU S.R.L.",
+        default="Sardinian Precast Concrete & Construction Supplier",
         validation_alias=AliasChoices("COMPANY_NAME", "company_name"),
     )
     company_piva: str = Field(
-        default="00799740915",
+        default="00000000000",
         validation_alias=AliasChoices("COMPANY_PIVA", "company_piva"),
     )
     company_rea: str = Field(
-        default="NU-49501",
+        default="NU-00000",
         validation_alias=AliasChoices("COMPANY_REA", "company_rea"),
     )
     company_albo_artigiani: str = Field(
-        default="NU-23034",
+        default="NU-00000",
         validation_alias=AliasChoices("COMPANY_ALBO_ARTIGIANI", "company_albo_artigiani"),
     )
     company_ateco_primary: str = Field(
@@ -113,7 +113,7 @@ class RadarSettings(BaseSettings):
         validation_alias=AliasChoices("COMPANY_ATECO_PRIMARY", "company_ateco_primary"),
     )
     company_base_municipality: str = Field(
-        default="Silanus",
+        default="Nuoro",
         validation_alias=AliasChoices("COMPANY_BASE_MUNICIPALITY", "company_base_municipality"),
     )
     company_base_province: str = Field(

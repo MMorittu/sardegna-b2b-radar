@@ -215,13 +215,13 @@ class TestDomainModelsAndEdilmorittuConfig:
                 logistics_tier=LogisticsTier.TIER_3_ISLAND,
             )
 
-    def test_edilmorittu_settings_defaults(self, tmp_path: Path) -> None:
+    def test_default_settings(self, tmp_path: Path) -> None:
         settings = RadarSettings(_env_file=None)
-        assert settings.company_name == "EDILMORITTU S.R.L."
-        assert settings.company_piva == "00799740915"
-        assert settings.company_rea == "NU-49501"
-        assert settings.company_albo_artigiani == "NU-23034"
-        assert settings.company_base_municipality == "Silanus"
+        assert settings.company_name == "Sardinian Precast Concrete & Construction Supplier"
+        assert settings.company_piva == "00000000000"
+        assert settings.company_rea == "NU-00000"
+        assert settings.company_albo_artigiani == "NU-00000"
+        assert settings.company_base_municipality == "Nuoro"
         assert settings.company_base_province == "NU"
         assert settings.db_path == Path("data/radar.db")
         assert settings.telegram_enabled is False

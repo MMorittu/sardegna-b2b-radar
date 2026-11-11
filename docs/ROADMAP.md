@@ -1,40 +1,39 @@
-# Roadmap di Progetto — Sardegna B2B Radar (EDILMORITTU S.R.L.)
+# Project Roadmap — Sardegna B2B Procurement Radar
 
-Stato aggiornato al: **`2026-11-11 16:30`**
-
----
-
-## Milestone 1: Backend Core, Connettori Live & Parser CME — COMPLETATA (100%)
-- [x] Architettura Python 3.11+ tipizzata con Pydantic v2 e CLI Typer/Rich.
-- [x] Connettore live **ANAC BDNCP (`appalto v2.3` + CKAN 2026 JSONL)** con estrazione vincitore, P.IVA, RUP, ribasso % e stato cantiere (`avvioContratto == []`).
-- [x] Connettore live **SardegnaCAT (`XMLBANDI`)**, CUC locali e **Bandi RAS / CCIAA Nuoro**.
-- [x] Validatore asincrono **`HttpUrlValidator`** (`HTTP 200` reale e blocco soft-404).
-- [x] **Parser Streaming Computi Metrici (`cme/`)** per PDF/ZIP PriMus con Gate 1 (Esclusioni) e Gate 2 (Linea A C.A.V. Tutta Sardegna + Linea B Rivendita `<= 40 km` da Silanus).
-- [x] Storage duale **SQLite WAL** (`data/radar.db`) + schema e client **Supabase Postgres** (`supabase/migrations/`).
-- [x] Notifiche sintetiche Telegram HTML, WhatsApp card e digest Markdown.
-- [x] Suite di test unitari e di integrazione al 100% (`104 passed, 0 failed`).
-- [x] Governance, regole agenti (`AGENTS.md`, `.antigravity/rules.md`), `CHANGELOG.md` con data/ora e ADR.
+Last updated: **`2026-11-11 17:00`**
 
 ---
 
-## Milestone 2: Dashboard Web & Mobile Next.js + CRM Familiare — PROSSIMO STEP
-- [ ] **Inizializzazione Progetto Frontend (`web/` o repo dedicato Next.js 14+ App Router, TypeScript, Tailwind CSS):**
-  - Interfaccia pensata per uso rapido da smartphone e desktop in azienda a Silanus.
-- [ ] **Integrazione Live con Supabase Postgres:**
-  - Sincronizzazione automatica dal comando `sardegna-radar scan` verso Supabase.
-- [ ] **Vista "Cantiere & Vincitore" (Lead Card):**
-  - Visualizzazione immediata di: Impresa Aggiudicataria, P.IVA, Comune dei lavori, distanza km da Silanus, importo stimato forniture Linea A e Linea B.
-  - Tabella espandibile con le singole voci estratte dal Computo Metrico Estimativo (quantità, prezzo unitario, totale).
-- [ ] **Azioni One-Click (Mini-CRM Operativo):**
-  - Cambio stato istantaneo (`da_chiamare` $\to$ `preventivo_inviato` $\to$ `vinto` / `scartato`).
-  - Pulsante **"Genera Bozza Preventivo WhatsApp / Email"** con elenco delle voci C.A.V. / materiali già formattato per l'impresa vincitrice.
+## Milestone 1: Backend Core, Live Connectors & Streaming CME Parser — COMPLETED (100%)
+- [x] Strictly typed Python 3.11+ architecture with Pydantic v2 and Typer/Rich CLI.
+- [x] Live **ANAC BDNCP (`appalto v2.3` + CKAN 2026 JSONL)** connector extracting awarded contractor, Tax ID, RUP, rebate %, and pre-construction status (`avvioContratto == []`).
+- [x] Live **SardegnaCAT (`XMLBANDI`)**, local CUC portals, and **RAS / Chamber of Commerce Grants** connectors.
+- [x] Async **`HttpUrlValidator`** enforcing real `HTTP 200` checks and blocking soft-404 pages.
+- [x] **Streaming Bill of Quantities Parser (`cme/`)** for PriMus PDFs/ZIPs with Gate 1 (Exclusions) and Gate 2 (Line A Precast C.A.V. island-wide + Line B Construction Supplies `<= 40 km`).
+- [x] Idempotent **SQLite WAL** storage (`data/radar.db`) + cloud PostgreSQL adapter.
+- [x] Compact Telegram HTML, WhatsApp card, and Markdown digest dispatchers.
+- [x] Full unit and integration test suite (`104 passed, 0 failed`).
 
 ---
 
-## Milestone 3: Automazione Schedulata & Arricchimento Contatti — FUTURA
-- [ ] **Esecuzione Automatica Giornaliera (Cron / GitHub Actions):**
-  - Scansione automatica ogni mattina alle `07:30` con invio diretto dei nuovi lead qualificati sul canale Telegram / WhatsApp aziendale.
-- [ ] **Arricchimento Anagrafica Aggiudicatari:**
-  - Associazione automatica di PEC, telefono o sede legale delle imprese sarde ricorrenti a partire dalla P.IVA estratta da ANAC.
-- [ ] **Monitoraggio Subappalti e Avvio Lavori:**
-  - Alert automatico quando un cantiere monitorato passa da `da_chiamare` alla pubblicazione della data di consegna lavori.
+## Milestone 2: Next.js Web & Mobile CRM Dashboard — NEXT
+- [ ] **Frontend Application (`Next.js 14+` App Router, TypeScript, Tailwind CSS):**
+  - Responsive B2B interface optimized for mobile and desktop use.
+- [ ] **Live Cloud Database Sync:**
+  - Real-time synchronization of tenders, extracted CME items, and CRM states.
+- [ ] **Awarded Site & Contractor View (Lead Card):**
+  - Instant overview of Winning Contractor, VAT/Tax ID, Municipality, road distance tier, and estimated Line A / Line B supply value.
+  - Expandable Bill of Quantities table displaying matched items, quantities, unit prices, and totals.
+- [ ] **One-Click Commercial Actions:**
+  - Instant CRM status transitions (`da_chiamare` $\to$ `preventivo_inviato` $\to$ `vinto` / `scartato`).
+  - **"Generate WhatsApp / Email Quote Draft"** button pre-filled with the extracted precast/material items.
+
+---
+
+## Milestone 3: Scheduled Automation & Contractor Enrichment — FUTURE
+- [ ] **Automated Morning Digest (Cron / GitHub Actions):**
+  - Scheduled `07:30` daily scan dispatching newly qualified B2B leads to Telegram/WhatsApp.
+- [ ] **Contractor Directory Enrichment:**
+  - Automated lookup of certified email (PEC) and contact details from the awarded contractor's Tax ID.
+- [ ] **Contract Start & Subcontract Monitoring:**
+  - Automated alert when a tracked tender publishes its site handover date or subcontract notice.

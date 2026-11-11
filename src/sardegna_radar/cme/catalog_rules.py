@@ -1,4 +1,4 @@
-"""EDILMORITTU S.R.L. deterministic Gate-1 (Hard Exclusions) & Gate-2 (Linea A / Linea B) rules."""
+"""Sardinian Precast & Construction Supplier deterministic Gate-1 (Hard Exclusions) & Gate-2 (Linea A / Linea B) rules."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def compiled_cme_exclusions() -> tuple[ExclusionRule, ...]:
 
 @functools.lru_cache(maxsize=1)
 def compiled_catalog_rules() -> tuple[CatalogRule, ...]:
-    """Gate 2 positive matching rules strictly grounded in EDILMORITTU S.R.L. COMPANY_DATA.md."""
+    """Gate 2 positive matching rules strictly grounded in Sardinian Precast & Construction Supplier COMPANY_DATA.md."""
     raw: tuple[tuple[ProductLine, CAVProductCategory, str, str, float], ...] = (
         # ==================== LINEA A: Produzione Propria C.A.V. & Vibrocompresso ====================
         (
@@ -177,7 +177,7 @@ def compiled_catalog_rules() -> tuple[CatalogRule, ...]:
 
 
 def check_cme_hard_exclusion(spec_text: str, unit: str = "", quantity: float = 0.0) -> str | None:
-    """Return the exclusion reason if a CME item violates Edilmorittu's hard boundaries, else None."""
+    """Return the exclusion reason if a CME item violates Catalog's hard boundaries, else None."""
     cleaned = spec_text.strip()
     if not cleaned:
         return "Descrizione vuota"

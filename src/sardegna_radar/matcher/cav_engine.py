@@ -1,4 +1,4 @@
-"""EDILMORITTU S.R.L. (Silanus, NU) Linea A & Linea B scoring engine with Hard Exclusions."""
+"""Sardinian Precast & Construction Supplier (Silanus, NU) Linea A & Linea B scoring engine with Hard Exclusions."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class _NegativeRule:
     hard_block: bool = False
 
 
-# Road distance in km from EDILMORITTU S.R.L. plant (SS 129 km 82,200, Silanus NU)
+# Road distance in km from Sardinian Precast & Construction Supplier plant (SS 129 km 82,200, Silanus NU)
 _SILANUS_DISTANCE_KM: dict[str, int] = {
     "silanus": 2,
     "lei": 6,
@@ -175,7 +175,7 @@ def _compiled_notice_rules() -> tuple[_NoticeRule, ...]:
 @functools.lru_cache(maxsize=1)
 def _compiled_negative_rules() -> tuple[_NegativeRule, ...]:
     raw_negatives: tuple[tuple[str, str, float, bool], ...] = (
-        # Hard Exclusions (Edilmorittu anti-false-positives)
+        # Hard Exclusions (Catalog anti-false-positives)
         (
             "Esclusione rigida: Pietra naturale (basalto/marmo/granito/travertino/porfido)",
             r"\b(?:basalto|marmo(?:\s+di\s+orosei)?|granit[oi]|travertino|porfido|trachite|pietra\s+naturale|materiale\s+lapideo)\b",
@@ -232,7 +232,7 @@ def compute_logistics_tier(
     municipality: str | None,
     province: SardinianProvince,
 ) -> tuple[LogisticsTier, int | None]:
-    """Resolve freight tier & road km from EDILMORITTU S.R.L. plant in Silanus (NU)."""
+    """Resolve freight tier & road km from Sardinian Precast & Construction Supplier plant in Silanus (NU)."""
     if municipality:
         cleaned = municipality.strip()
         for town_pat, km in _compiled_town_distances():
@@ -274,9 +274,9 @@ def _build_recommended_action(
     priority_unstarted: bool,
 ) -> str:
     if score < 45.0:
-        return "Scartare / Bassa priorità catalogo Edilmorittu"
+        return "Scartare / Bassa priorità catalogo Catalog"
     if notice.notice_type == NoticeType.REGIONAL_GRANT or CAVProductCategory.SME_GRANT_SUBSIDY in categories:
-        return "Verificare requisiti bando (ATECO 23.61.0 / Albo Artigiani NU-23034) per investimento Edilmorittu S.r.l."
+        return "Verificare requisiti bando (ATECO 23.61.0 / Albo Artigiani Artisan Registry) per investimento Catalog S.r.l."
 
     line_tag = "+".join(sorted(l.value.upper().replace("_", " ") for l in lines)) or "LINEA A"
     if notice.notice_type == NoticeType.CONTRACT_AWARD or notice.winner_company:
@@ -294,7 +294,7 @@ def _build_recommended_action(
 
 
 class CAVScoringEngine:
-    """Deterministic Edilmorittu S.R.L. Linea A + Linea B matcher & Silanus logistics scorer."""
+    """Deterministic Catalog S.R.L. Linea A + Linea B matcher & Silanus logistics scorer."""
 
     def score_notice(
         self,

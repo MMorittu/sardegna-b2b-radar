@@ -1,56 +1,55 @@
-# Sardegna B2B Radar — EDILMORITTU S.R.L. (`v1.1.0`)
+# Sardegna B2B Procurement & CME Intelligence Radar (`v1.1.0`)
 
-Motore B2B **100% live (zero demo)** di intelligence su gare pubbliche aggiudicate, gare lavori aperte e bandi PMI/Artigiani in Sardegna, calibrato esclusivamente sul catalogo produttivo e commerciale di **EDILMORITTU S.R.L.** (`P.IVA 00799740915` — `REA NU-49501` — `Albo Artigiani NU-23034` — SS 129 km 82,200, Silanus NU).
+A production-grade, **100% live (zero-demo)** asynchronous B2B procurement, Bill of Quantities (*Computo Metrico Estimativo*), and regional grant intelligence engine for the Sardinian precast concrete (*C.A.V. / Vibrocompresso*, `ATECO 23.61.0`) and civil construction supply sector.
 
 ---
 
-## Documentazione & Contesto del Progetto
+## Project Documentation
 
-| File | Descrizione |
+| Document | Description |
 | :--- | :--- |
-| [**`AGENTS.md`**](./AGENTS.md) | Regole del progetto, vincolo **Plan-Before-Execute** e regole di dominio EDILMORITTU S.R.L. |
-| [**`ARCHITECTURE.md`**](./ARCHITECTURE.md) | Diagramma Mermaid della pipeline a imbuto, mappa dei moduli e logica dei Tier logistici da Silanus. |
-| [**`CHANGELOG.md`**](./CHANGELOG.md) | Storico cronologico delle modifiche con data e ora ISO (`[YYYY-MM-DD HH:MM]`). |
-| [**`docs/ROADMAP.md`**](./docs/ROADMAP.md) | Stato di avanzamento (Milestone 1 completata, Milestone 2 Next.js Dashboard, Milestone 3 Cron). |
-| [**`docs/DECISIONS.md`**](./docs/DECISIONS.md) | Registro delle decisioni architetturali (`ADR-001` .. `ADR-004`). |
-| [**`CONTRIBUTING.md`**](./CONTRIBUTING.md) | Standard TDD, Conventional Commits e checklist pre-rilascio. |
+| [**`ARCHITECTURE.md`**](./ARCHITECTURE.md) | End-to-end funnel architecture (Mermaid), module map, and road-freight logistics tiering. |
+| [**`CHANGELOG.md`**](./CHANGELOG.md) | Chronological release log with ISO timestamps (`[YYYY-MM-DD HH:MM]`). |
+| [**`docs/ROADMAP.md`**](./docs/ROADMAP.md) | Project milestones (M1 Backend Core, M2 Next.js Web Dashboard, M3 Scheduled Automation). |
+| [**`docs/DECISIONS.md`**](./docs/DECISIONS.md) | Architecture Decision Records (`ADR-001` .. `ADR-004`). |
+| [**`CONTRIBUTING.md`**](./CONTRIBUTING.md) | TDD workflow, Conventional Commits standard, and pre-release checklist. |
 
 ---
 
-## Architettura a Imbuto (Milestone 1)
+## Funnel Architecture (Milestone 1)
 
-1. **Connettori Live + Validatore `HTTP 200` (`scrapers/`):**
-   - **ANAC BDNCP (`appalto v2.3` + OpenData CKAN 2026 JSONL):** estrazione lavori Sardegna, vincitore reale (`FLAG_AGGIUDICATARIO`), P.IVA/CF + stima distanza sede da Silanus, ribasso %, RUP, stato cantiere (`avvioContratto == []` e `subappalti == []`).
-   - **SardegnaCAT (`XMLBANDI` + `DownloadAttach.asp`):** gare lavori/forniture aperte ed esiti con riscrittura automatica `/portalegare/` e URL ZIP allegati.
-   - **CUC Locali (PA Digitale / Municipium):** es. Comunità Montana Nuorese.
-   - **Bandi RAS (Apollo GraphQL) & CCIAA Nuoro (`nu.camcom.it`):** contributi a fondo perduto per `ATECO 23.61.0` e imprese artigiane.
-   - **`HttpUrlValidator`:** ogni singolo URL salvato segue i redirect, verifica `HTTP 200` reale e blocca i soft-404.
-2. **Parser Streaming Computi Metrici (`cme/`):**
-   - Estrae in memoria da `.pdf`, `.pdf.p7m` o `.zip` multi-elaborato **solo il Computo Metrico Estimativo**, gestendo formati ACCA PriMus multi-pagina e separatori migliaia `´` (`2´981,89`).
-   - **Gate 1 (Esclusioni Rigide):** scarta demolizioni/scavi/discariche, **pietra naturale** (basalto, marmo di Orosei, granito, travertino, porfido) e **getti di calcestruzzo preconfezionato da autobetoniera (`> 1 t` / classe S4-S5)**.
-   - **Gate 2 (Catalogo Reale):** classifica **Linea A** (C.A.V. & vibrocompresso `ATECO 23.61.0`, consegna in tutta la Sardegna con 2 camion autogru) e **Linea B** (ferro `B450C`, inerti, PVC `SN4`, multistrato, forati, malte ripristino cls, guaine, pitture `ATECO 47.52`, vantaggio logistico `<= 40 km` da Silanus).
-3. **Storage Dual-Ready (`storage/` + `supabase/migrations/`):**
-   - Tabelle `tenders` + `cme_items` + `crm_status` (`da_chiamare | preventivo_inviato | vinto | scartato`) su **SQLite WAL** (`data/radar.db`) e **Supabase Postgres** (RLS + partial indexes per la Dashboard Next.js Milestone 2).
-4. **Output Ultra-Sintetico (`notifiers/`):**
-   - Card zero-fluff per **Telegram HTML**, **WhatsApp** e `data/leads_digest.md`.
+1. **Live Connectors & Real `HTTP 200` Validator (`scrapers/`):**
+   - **ANAC BDNCP (`appalto v2.3` + OpenData CKAN 2026 JSONL):** extracts Sardinian public works, awarded contractor (`FLAG_AGGIUDICATARIO`), VAT/Tax ID, road distance from the configured logistics hub, rebate %, RUP, and pre-construction window (`avvioContratto == []` and `subappalti == []`).
+   - **SardegnaCAT (`XMLBANDI` + `DownloadAttach.asp`):** parses open tenders and award notices with automatic `/portalegare/` URL normalization and ZIP attachment discovery.
+   - **Local CUC Portals (PA Digitale / Municipium):** municipal union procurement portals across Sardinia.
+   - **Regional Grants — RAS (Apollo GraphQL) & Chamber of Commerce:** non-repayable SME and artisan manufacturing grants (`ATECO 23.61.0`).
+   - **`HttpUrlValidator`:** follows redirects, enforces real `HTTP 200` responses, and blocks soft-404 error pages before persistence.
+2. **Streaming Bill of Quantities Parser (`cme/`):**
+   - Streams `.pdf`, `.pdf.p7m`, and multi-document `.zip` archives in memory to isolate the *Computo Metrico Estimativo* (supporting multi-page ACCA PriMus layouts and `´` thousand separators like `2´981,89`).
+   - **Gate 1 (Strict Exclusions):** filters out earthworks/demolitions, **natural stone** (basalt, Orosei marble, granite, porphyry), and **ready-mix concrete truck pours (`> 1 t` / exposure classes S4-S5)**.
+   - **Gate 2 (Catalog Classification):** classifies **Line A** (Precast Reinforced Concrete C.A.V. & vibro-compressed items `ATECO 23.61.0`, island-wide delivery via crane trucks) and **Line B** (rebar `B450C`, aggregates, PVC `SN4`, multilayer pipes, hollow bricks, technical mortars, waterproofing `ATECO 47.52`, competitive within `<= 40 km` of the logistics hub).
+3. **Idempotent Storage & Mini-CRM (`storage/`):**
+   - Persists `tenders`, `cme_items`, and `crm_status` (`da_chiamare | preventivo_inviato | vinto | scartato`) in **SQLite WAL** (`data/radar.db`) with optional cloud sync.
+4. **Zero-Fluff Dispatchers (`notifiers/`):**
+   - Generates high-density B2B cards for **Telegram HTML**, **WhatsApp**, and `data/leads_digest.md`.
 
 ---
 
-## Comandi Principali
+## Quickstart & CLI Reference
 
 ```powershell
-# Eseguire la scansione live su tutti i portali
+# Run live scan across all Sardinian procurement & grant portals
 .\.venv\Scripts\sardegna-radar.exe scan
 
-# Analizzare un Computo Metrico Estimativo (PDF / ZIP / URL)
-.\.venv\Scripts\sardegna-radar.exe parse-cme <computo.pdf|progetto.zip|url> --anac-json <cig_v23.json> --save
+# Parse a Computo Metrico Estimativo (PDF / ZIP / URL)
+.\.venv\Scripts\sardegna-radar.exe parse-cme <computo.pdf|project.zip|url> --anac-json <cig_v23.json> --save
 
-# Visualizzare i lead qualificati
+# List qualified B2B leads
 .\.venv\Scripts\sardegna-radar.exe leads --min-score 45
 
-# Aggiornare lo stato CRM di un lead
+# Update CRM status for a tender CIG
 .\.venv\Scripts\sardegna-radar.exe set-status BCB16FC2F3 preventivo_inviato
 
-# Eseguire l'intera suite di test (104 test)
+# Execute the full unit & integration test suite (104 tests)
 .\.venv\Scripts\python.exe -m pytest -v
 ```

@@ -1,4 +1,4 @@
-"""Sardegna B2B Tender & Procurement Radar (EDILMORITTU S.R.L.)."""
+"""Sardegna B2B Tender & Procurement Radar."""
 
 from __future__ import annotations
 

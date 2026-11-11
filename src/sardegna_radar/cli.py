@@ -1,4 +1,4 @@
-"""100% Live Typer + Rich CLI for Sardegna B2B Radar (EDILMORITTU S.R.L., zero demo)."""
+"""100% Live Typer + Rich CLI for Sardegna B2B Radar (zero demo)."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ from sardegna_radar.storage.repository import build_repository
 
 app = typer.Typer(
     name="sardegna-radar",
-    help="Sardegna B2B Radar — EDILMORITTU S.R.L. Live Tender, CME & Grant Intelligence",
+    help="Sardegna B2B Radar — Sardinian Precast & Construction Supplier Live Tender, CME & Grant Intelligence",
     add_completion=False,
 )
 console = Console()
@@ -205,7 +205,7 @@ def scan_command(
             f"(scartati non-200/soft-404: {rejected_urls})\n"
             f"[bold green]Nuovi inseriti:[/bold green] {inserted} | "
             f"[bold yellow]Aggiornati idempotenti:[/bold yellow] {deduplicated}\n"
-            f"[bold magenta]Qualificati Edilmorittu (>={min_score:.0f}/100):[/bold magenta] {len(qualified)} | "
+            f"[bold magenta]Qualificati Catalog (>={min_score:.0f}/100):[/bold magenta] {len(qualified)} | "
             f"[bold blue]Telegram inviati:[/bold blue] {notified_count}\n"
             f"[bold dim]Digest aggiornato:[/bold dim] {digest_out}{err_line}",
             title=f"📡 Sardegna B2B Radar — {settings.company_name} (P.IVA {settings.company_piva})",
@@ -237,7 +237,7 @@ def parse_cme_command(
         typer.Option("--db-path", help="Custom SQLite WAL database path."),
     ] = None,
 ) -> None:
-    """Parse a Computo Metrico Estimativo (.pdf/.zip/.p7m or URL) for Edilmorittu Linea A & Linea B."""
+    """Parse a Computo Metrico Estimativo (.pdf/.zip/.p7m or URL) for Catalog Linea A & Linea B."""
     settings = _resolve_settings(db_path)
     parser = CMEParser(settings=settings)
 

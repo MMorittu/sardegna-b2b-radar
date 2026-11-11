@@ -94,7 +94,7 @@ def format_lead_whatsapp_text(lead: ScoredLead) -> str:
     if n.rup_name:
         lines.append(f"👤 RUP: {n.rup_name}")
 
-    lines.append("🧱 *Materiali & Misure Edilmorittu:*")
+    lines.append("🧱 *Materiali & Misure Catalog:*")
     lines.extend(_materials_lines(lead))
     if n.url:
         lines.append(f"🔗 {n.url}")
@@ -123,7 +123,7 @@ def format_lead_telegram_html(lead: ScoredLead) -> str:
     if n.rup_name:
         lines.append(f"👤 <b>RUP:</b> {html.escape(n.rup_name)}")
 
-    lines.append("🧱 <b>Materiali &amp; Misure Edilmorittu:</b>")
+    lines.append("🧱 <b>Materiali &amp; Misure Catalog:</b>")
     for m_line in _materials_lines(lead):
         lines.append(html.escape(m_line))
     if n.url:
@@ -133,11 +133,11 @@ def format_lead_telegram_html(lead: ScoredLead) -> str:
 
 def render_markdown_digest(
     leads: Sequence[ScoredLead],
-    company_name: str = "EDILMORITTU S.R.L.",
+    company_name: str = "Sardinian Precast & Construction Supplier",
 ) -> str:
     """Render qualified leads into a concise Markdown commercial digest (`data/leads_digest.md`)."""
     lines = [
-        f"# Radar Commerciale B2B — {company_name} (P.IVA 00799740915, Silanus NU)",
+        f"# Radar Commerciale B2B — {company_name} (P.IVA 00000000000, Silanus NU)",
         f"**Opportunità Verificate Live (`HTTP 200`):** {len(leads)}",
         "",
     ]
@@ -167,7 +167,7 @@ def render_markdown_digest(
             )
         if n.rup_name:
             lines.append(f"- **RUP:** {n.rup_name}")
-        lines.append("- **Materiali & Misure Edilmorittu:**")
+        lines.append("- **Materiali & Misure Catalog:**")
         for m_line in _materials_lines(lead):
             lines.append(f"  {m_line}")
         status_badge = f"HTTP {n.http_status}" if n.http_status else "Non verificato"

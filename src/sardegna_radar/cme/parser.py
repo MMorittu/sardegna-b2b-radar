@@ -404,7 +404,7 @@ class CMEParser:
                         {
                             "role": "system",
                             "content": (
-                                "Sei il tecnico preventivista di EDILMORITTU S.R.L. (Silanus, NU). "
+                                "Sei il tecnico preventivista di Sardinian Precast & Construction Supplier (Silanus, NU). "
                                 "Escludi SEMPRE pietra naturale (basalto, marmo, granito, travertino) e "
                                 "calcestruzzo liquido da autobetoniera (>1t). Restituisci JSON {\"matches\": []}."
                             ),

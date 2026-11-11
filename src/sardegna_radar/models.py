@@ -1,4 +1,4 @@
-"""Domain models and deterministic Italian procurement normalizers (ANAC v2.3 & Edilmorittu)."""
+"""Domain models and deterministic Italian procurement normalizers (ANAC v2.3 & Catalog)."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ class SardinianProvince(StrEnum):
 
 
 class ProductLine(StrEnum):
-    """EDILMORITTU S.R.L. commercial business lines."""
+    """Sardinian Precast & Construction Supplier commercial business lines."""
 
     LINEA_A = "linea_a"  # Produzione Propria C.A.V. & Vibrocompresso (ATECO 23.61.0 - Tutta Sardegna)
     LINEA_B = "linea_b"  # Rivendita Edile, Inerti, Ferro & Termoidraulica (ATECO 47.52 - <=40km Silanus)
@@ -58,7 +58,7 @@ class CRMStatus(StrEnum):
 
 
 class CAVProductCategory(StrEnum):
-    """EDILMORITTU S.R.L. real product catalog categories (Linea A + Linea B + Grants)."""
+    """Sardinian Precast & Construction Supplier real product catalog categories (Linea A + Linea B + Grants)."""
 
     # Linea A — Produzione Propria C.A.V. & Vibrocompresso (ATECO 23.61.0)
     PIPES_CULVERTS = "Tubi C.A.V. DN 150-2000 (UNI EN 1916)"
@@ -75,12 +75,12 @@ class CAVProductCategory(StrEnum):
     BRICKS_MASONRY_BINDERS = "Laterizi Forati, Cemento R32.5, Calce & Malte Ripristino Cls"
     WATERPROOFING_PAINTS = "Guaine Impermeabilizzanti, Idropitture & Fissativi"
 
-    # Bersaglio 3 — Bandi / Contributi PMI & Artigiani (ATECO 23.61.0 / NU-23034)
+    # Bersaglio 3 — Bandi / Contributi PMI & Artigiani (ATECO 23.61.0 / Artisan Registry)
     SME_GRANT_SUBSIDY = "Bandi Fondo Perduto RAS & CCIAA Nuoro (Artigiani / ATECO 23.61.0)"
 
 
 class LogisticsTier(StrEnum):
-    """Road freight tiers measured from EDILMORITTU HQ (SS 129 km 82,200, Silanus NU)."""
+    """Road freight tiers measured from Central Sardinia Logistics Hub."""
 
     TIER_1_CORE = "Tier 1 (<40 km da Silanus: Marghine, Goceano, Nuorese, Alto Oristanese)"
     TIER_2_CENTRAL = "Tier 2 (40-100 km da Silanus: Sassarese, Oristano, Ogliastra, Gallura Sud)"
@@ -433,7 +433,7 @@ def resolve_sardinian_province(hint: str | SardinianProvince | None) -> Sardinia
 
 
 class CMEItem(BaseModel):
-    """Single Bill of Quantities (Computo Metrico Estimativo) item matched to Edilmorittu catalog."""
+    """Single Bill of Quantities (Computo Metrico Estimativo) item matched to Catalog catalog."""
 
     model_config = ConfigDict(validate_assignment=True, str_strip_whitespace=True)
 
@@ -550,7 +550,7 @@ class TenderNotice(BaseModel):
 
 
 class MatchAssessment(BaseModel):
-    """Deterministic Edilmorittu relevance score, matched catalog lines, and Silanus logistics."""
+    """Deterministic Catalog relevance score, matched catalog lines, and Silanus logistics."""
 
     score: float = Field(ge=0.0, le=100.0)
     matched_categories: list[CAVProductCategory] = Field(default_factory=list)

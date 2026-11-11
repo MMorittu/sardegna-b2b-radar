@@ -139,7 +139,7 @@ class TestUltraCompactFormattersAndNotifier:
         assert sent == []
         assert len(httpx_mock.get_requests()) == 0
         digest = render_markdown_digest([lead])
-        assert "EDILMORITTU S.R.L." in digest
+        assert "Sardinian Precast & Construction Supplier" in digest
         assert "2.981,89 kg" in digest
 
 
@@ -203,8 +203,8 @@ class TestTyperCLI:
 
         res_stats = runner.invoke(app, ["stats", "--db-path", str(db_file)])
         assert res_stats.exit_code == 0
-        assert "EDILMORITTU S.R.L." in res_stats.stdout
-        assert "00799740915" in res_stats.stdout
+        assert "Sardinian Precast" in res_stats.stdout
+        assert "00000000000" in res_stats.stdout
 
         res_exp = runner.invoke(
             app,

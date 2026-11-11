@@ -1,42 +1,42 @@
-# Architettura del Sistema — Sardegna B2B Radar
+# System Architecture — Sardegna B2B Procurement Radar
 
-**Sardegna B2B Radar** è un motore asincrono di intelligence commerciale B2B progettato per **EDILMORITTU S.R.L.** (Silanus, NU). Intercetta gare d'appalto pubbliche aggiudicate, gare aperte e bandi regionali/camerali in Sardegna, analizza i Computi Metrici Estimativi (CME) e qualifica le opportunità di fornitura edile prima dell'apertura del cantiere.
+**Sardegna B2B Radar** is an asynchronous B2B procurement intelligence engine designed for Sardinian precast concrete (*C.A.V. / Vibrocompresso*) manufacturers and construction material suppliers. It intercepts awarded public works tenders, open tenders, and regional SME grants across Sardinia, parses Bills of Quantities (*Computi Metrici Estimativi* — CME), and qualifies supply opportunities before construction sites open.
 
 ---
 
-## 1. Flusso Dati a Imbuto (Pipeline End-to-End)
+## 1. End-to-End Data Funnel
 
 ```mermaid
 flowchart TD
-    subgraph Sources["1. Fonti OpenData & Portali Sardegna"]
+    subgraph Sources["1. OpenData & Sardinian Portals"]
         ANAC["ANAC BDNCP v2.3 & CKAN JSONL"]
-        SCAT["SardegnaCAT (XMLBANDI & Allegati ZIP)"]
-        CUC["CUC Locali (PA Digitale / Municipium)"]
-        GRANTS["Bandi RAS (GraphQL) & CCIAA Nuoro"]
+        SCAT["SardegnaCAT (XMLBANDI & ZIP Attachments)"]
+        CUC["Local CUC Portals (PA Digitale / Municipium)"]
+        GRANTS["RAS Grants (GraphQL) & Chamber of Commerce"]
     end
 
-    subgraph Ingestion["2. Connettori Live & Validazione HTTP"]
-        SCRAPERS["Scrapers Asincroni (httpx + Scrapling)"]
-        VALIDATOR["HttpUrlValidator (Verifica HTTP 200 & Anti-Soft-404)"]
+    subgraph Ingestion["2. Async Connectors & HTTP Validation"]
+        SCRAPERS["Async Scrapers (httpx + Scrapling)"]
+        VALIDATOR["HttpUrlValidator (Real HTTP 200 & Anti-Soft-404)"]
     end
 
-    subgraph CMEEngine["3. Parser Computi Metrici & Motore Catalogo"]
+    subgraph CMEEngine["3. Streaming CME Parser & Catalog Engine"]
         PARSER["CME Streaming Parser (.pdf / .p7m / .zip PriMus)"]
-        GATE1["Gate 1: Esclusioni Rigide (Pietra naturale, Autobetoniera >1t, Scavi)"]
-        GATE2["Gate 2: Matching Catalogo Edilmorittu"]
-        LINEA_A["Linea A: Manufatti C.A.V. & Vibrocompressi (Tutta Sardegna)"]
-        LINEA_B["Linea B: Ferro B450C, Inerti, PVC, Malte (Raggio <= 40 km da Silanus)"]
+        GATE1["Gate 1: Strict Exclusions (Natural Stone, Ready-Mix >1t, Earthworks)"]
+        GATE2["Gate 2: Dual-Line Catalog Matcher"]
+        LINEA_A["Line A: Precast C.A.V. & Vibro-compressed (All Sardinia)"]
+        LINEA_B["Line B: Rebar B450C, Aggregates, PVC, Mortars (Radius <= 40 km)"]
     end
 
-    subgraph Storage["4. Dual Storage & CRM"]
+    subgraph Storage["4. Idempotent Storage & Mini-CRM"]
         SQLITE[("SQLite WAL (data/radar.db)")]
-        SUPABASE[("Supabase Postgres (Cloud Ready)")]
+        CLOUD[("Cloud Postgres Adapter")]
     end
 
-    subgraph Output["5. Notifiche & Azione Commerciale"]
+    subgraph Output["5. Dispatch & Commercial Action"]
         TG["Telegram HTML & WhatsApp Card"]
-        CLI["Rich CLI & Digest Markdown"]
-        DASH["Next.js Dashboard (Milestone 2)"]
+        CLI["Rich CLI & Markdown Digest"]
+        DASH["Next.js Web Dashboard (Milestone 2)"]
     end
 
     ANAC & SCAT & CUC & GRANTS --> SCRAPERS
@@ -45,38 +45,37 @@ flowchart TD
     PARSER --> GATE1
     GATE1 --> GATE2
     GATE2 --> LINEA_A & LINEA_B
-    LINEA_A & LINEA_B --> SQLITE & SUPABASE
-    SQLITE & SUPABASE --> TG & CLI & DASH
+    LINEA_A & LINEA_B --> SQLITE & CLOUD
+    SQLITE & CLOUD --> TG & CLI & DASH
 ```
 
 ---
 
-## 2. Mappa dei Moduli (`src/sardegna_radar/`)
+## 2. Module Map (`src/sardegna_radar/`)
 
-| Modulo / File | Responsabilità Principale |
+| Module / File | Primary Responsibility |
 | :--- | :--- |
-| [`config.py`](src/sardegna_radar/config.py) | Gestione configurazione e variabili d'ambiente tramite `pydantic-settings`. |
-| [`models.py`](src/sardegna_radar/models.py) | Modelli dati immutabili Pydantic (`TenderNotice`, `ScoredLead`, `CMEItem`, `CRMStatus`, `LogisticsTier`). |
-| [`exceptions.py`](src/sardegna_radar/exceptions.py) | Gerarchia di eccezioni tipizzate (`RadarError`, `ScraperError`, `CMEParseError`, `StorageError`). |
-| [`scrapers/anac_api.py`](src/sardegna_radar/scrapers/anac_api.py) | Client ANAC BDNCP (`appalto v2.3`) e dataset CKAN 2026: estrae vincitore, P.IVA, RUP, ribasso e stato cantiere. |
-| [`scrapers/sardegna_cat.py`](src/sardegna_radar/scrapers/sardegna_cat.py) | Parser SardegnaCAT (`XMLBANDI`) e risoluzione link allegati progettuali (`DownloadAttach.asp`). |
-| [`scrapers/sardegna_portals.py`](src/sardegna_radar/scrapers/sardegna_portals.py) | Connettori adattivi per CUC locali (es. Comunità Montana Nuorese) e portali Municipium/PA Digitale. |
-| [`scrapers/grants_ras_cciaa.py`](src/sardegna_radar/scrapers/grants_ras_cciaa.py) | Connettore GraphQL per Bandi Regione Sardegna e scraper HTML per contributi CCIAA Nuoro. |
-| [`scrapers/url_validator.py`](src/sardegna_radar/scrapers/url_validator.py) | Validatore asincrono che segue i redirect, controlla `HTTP 200` e scarta pagine soft-404. |
-| [`cme/parser.py`](src/sardegna_radar/cme/parser.py) | Estrattore streaming di Computi Metrici da PDF/ZIP PriMus con classificazione Linea A / Linea B ed esclusioni. |
-| [`matcher/cav_engine.py`](src/sardegna_radar/matcher/cav_engine.py) | Motore deterministico di scoring C.A.V., calcolo distanza da Silanus (`Tier 1 <=40km`, `Tier 2 40-100km`, `Tier 3 >100km`) e filtri CPV. |
-| [`storage/repository.py`](src/sardegna_radar/storage/repository.py) | Persistenza locale su SQLite in modalità `WAL` con deduplicazione idempotente su `(source, external_id)`. |
-| [`storage/supabase_repo.py`](src/sardegna_radar/storage/supabase_repo.py) | Adapter REST/Postgres per sincronizzare gare, voci CME e stati CRM su Supabase. |
-| [`notifiers/telegram.py`](src/sardegna_radar/notifiers/telegram.py) | Formattatore zero-fluff per messaggi Telegram HTML, card WhatsApp e digest Markdown. |
-| [`cli.py`](src/sardegna_radar/cli.py) | Interfaccia a riga di comando (`scan`, `parse-cme`, `leads`, `set-status`, `stats`, `export`). |
+| [`config.py`](src/sardegna_radar/config.py) | Environment and logistics hub configuration via `pydantic-settings`. |
+| [`models.py`](src/sardegna_radar/models.py) | Immutable Pydantic v2 domain models (`TenderNotice`, `ScoredLead`, `CMEItem`, `CRMStatus`, `LogisticsTier`). |
+| [`exceptions.py`](src/sardegna_radar/exceptions.py) | Typed exception hierarchy (`RadarError`, `RadarNetworkError`, `UrlValidationError`, `CMEParseError`, `StorageError`). |
+| [`scrapers/anac_api.py`](src/sardegna_radar/scrapers/anac_api.py) | ANAC BDNCP (`appalto v2.3`) and CKAN 2026 client: extracts winner, Tax ID, RUP, rebate %, and contract start status. |
+| [`scrapers/sardegna_cat.py`](src/sardegna_radar/scrapers/sardegna_cat.py) | SardegnaCAT (`XMLBANDI`) parser and attachment link resolver (`DownloadAttach.asp`). |
+| [`scrapers/sardegna_portals.py`](src/sardegna_radar/scrapers/sardegna_portals.py) | Adaptive HTML parsers for local CUC portals (Municipium / PA Digitale). |
+| [`scrapers/grants_ras_cciaa.py`](src/sardegna_radar/scrapers/grants_ras_cciaa.py) | Apollo GraphQL client for Autonomous Region of Sardinia (RAS) grants and Chamber of Commerce notices. |
+| [`scrapers/url_validator.py`](src/sardegna_radar/scrapers/url_validator.py) | Async validator verifying `HTTP 200` status and rejecting soft-404 pages. |
+| [`cme/parser.py`](src/sardegna_radar/cme/parser.py) | Streaming Bill of Quantities extractor for PriMus PDFs/ZIPs with Gate 1 exclusions and Line A/B classification. |
+| [`matcher/cav_engine.py`](src/sardegna_radar/matcher/cav_engine.py) | Deterministic C.A.V. scoring engine, road distance tiering (`Tier 1 <=40km`, `Tier 2 40-100km`, `Tier 3 >100km`), and CPV boosters. |
+| [`storage/repository.py`](src/sardegna_radar/storage/repository.py) | Local SQLite `WAL` persistence with idempotent upsert on `(source, external_id)`. |
+| [`notifiers/telegram.py`](src/sardegna_radar/notifiers/telegram.py) | Zero-fluff formatter for Telegram HTML notifications, WhatsApp cards, and Markdown digests. |
+| [`cli.py`](src/sardegna_radar/cli.py) | Typer/Rich CLI (`scan`, `parse-cme`, `leads`, `set-status`, `stats`, `export`). |
 
 ---
 
-## 3. Logica di Scoring & Logistica da Silanus (SS 129 km 82,200)
+## 3. Scoring Logic & Logistics Tiers (Central Sardinia Hub)
 
-1. **Finestra Temporale Perfetta (Golden Window):**
-   - Il punteggio massimo viene assegnato agli appalti **aggiudicati** in cui `avvioContratto` è vuoto e non risultano subappalti registrati: l'impresa vincitrice sta preparando gli acquisti dei materiali.
-2. **Tier Logistici:**
-   - **Tier 1 (`<= 40 km` da Silanus):** Vantaggio competitivo totale sia per **Linea A** (C.A.V.) sia per **Linea B** (ferro, inerti, PVC, malte). Include Silanus, Bolotana, Lei, Bortigali, Macomer, Dualchi, Noragugume, Ottana, Sedilo, Ghilarza, Bono, Nuoro, Orotelli, Orani.
-   - **Tier 2 (`40 – 100 km` da Silanus):** Ottimo per carichi completi **Linea A** con camion autogru (Oristano, Sassari, Olbia, Ozieri, Alghero, Bosa, Tortolì).
-   - **Tier 3 (`> 100 km` da Silanus):** Conveniente per forniture **Linea A** ad alto valore aggiunto (pozzetti stradali, loculi cimiteriali, grandi lotti C.A.V. nel Sud Sardegna / Cagliari / Sulcis).
+1. **Pre-Construction Golden Window:**
+   - Maximum priority is assigned to **awarded** public works tenders where `avvioContratto` is empty and no subcontracts are registered yet—capturing the exact moment when the winning contractor is sourcing materials.
+2. **Road-Freight Logistics Tiers:**
+   - **Tier 1 (`<= 40 km` from Central Hub):** Full competitive advantage for both **Line A** (Precast C.A.V.) and **Line B** (rebar, aggregates, PVC, technical mortars).
+   - **Tier 2 (`40 – 100 km`):** Optimal for full crane-truck loads of **Line A** precast concrete products.
+   - **Tier 3 (`> 100 km`):** High-margin **Line A** precast structures (road manholes, prefabricated cemetery niches, large drainage lots).
