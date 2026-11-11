@@ -1,0 +1,68 @@
+{
+  "bando": {
+    "CIG": "BCB16FC2F3",
+    "CPV": [
+      {
+        "COD_CPV": "45215400",
+        "FLAG_PREVALENTE": 1
+      }
+    ],
+    "CUP": [
+      {
+        "CUP": "I12F25000400006"
+      }
+    ],
+    "DATA_SCADENZA_OFFERTA": "2026-09-15",
+    "DENOMINAZIONE_SA_DELEGANTE": "COMUNE DI BOLOTANA",
+    "DENOMINAZIONE_SA_DELEGATA": "COMUNITA MONTANA NUORESE GENNARGENTU SUPRAMONTE BARBAGIA",
+    "IMPORTO_COMPLESSIVO_GARA": 187389.27,
+    "OGGETTO_GARA": "PROCEDURA APERTA PER L'AFFIDAMENTO DEI LAVORI DI MESSA IN SICUREZZA URGENTE DEL CIMITERO DEL COMUNE DI BOLOTANA. CUP: I12F25000400006",
+    "OGGETTO_PRINCIPALE_CONTRATTO": "LAVORI",
+    "SIGLA_PROVINCIA": "NUORO",
+    "ESITO": "AGGIUDICATA"
+  },
+  "pubblicazioni": {
+    "DATA_PUBBLICAZIONE": "2026-08-12",
+    "LINK_SITO_COMMITTENTE": "https://sardegnacat.regione.sardegna.it/Application/CustomDoc/DettaglioProcedura.asp?ID=824862"
+  },
+  "incaricati": [
+    {
+      "COD_RUOLO": "RUP",
+      "NOME": "GIULIANO",
+      "COGNOME": "CORRIAS"
+    }
+  ],
+  "stazioneAppaltante": {
+    "CITTA": "BOLOTANA",
+    "DENOMINAZIONE_AMMINISTRAZIONE_APPALTANTE": "COMUNE DI BOLOTANA",
+    "REGIONE": "SARDEGNA",
+    "SEZIONE_REGIONALE": "SEZIONE REGIONALE SARDEGNA"
+  },
+  "partecipanti": [
+    {
+      "CODICE_FISCALE": "03811400922",
+      "DENOMINAZIONE": "FL. COSTRUZIONI & SERVIZI S.R.L.",
+      "FLAG_AGGIUDICATARIO": -1,
+      "RUOLO": "OPERATORE ECONOMICO MONOSOGGETTIVO"
+    },
+    {
+      "CODICE_FISCALE": "01102170915",
+      "DENOMINAZIONE": "ECOTEKNA S.R.L.",
+      "RUOLO": "OPERATORE ECONOMICO MONOSOGGETTIVO"
+    }
+  ],
+  "aggiudicazione": [
+    {
+      "DATA_AGGIUDICAZIONE_DEFINITIVA": "2026-10-15",
+      "ESITO": "AGGIUDICATA",
+      "IMPORTO_AGGIUDICAZIONE": 147411.79,
+      "RIBASSO_AGGIUDICAZIONE": 21.62
+    }
+  ],
+  "avvioContratto": [],
+  "subappalti": [],
+  "documento": {
+    "tipo": "appalto",
+    "versione": "2.3"
+  }
+}

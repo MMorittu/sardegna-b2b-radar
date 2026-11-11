@@ -1,6 +1,7 @@
-# Ignore runtime SQLite files inside data/ while keeping directory tracked
+# Ignore runtime SQLite files and Scrapling adaptive cache inside data/ while keeping directory tracked
 *.db
 *.db-shm
 *.db-wal
 *.md
+adaptive_selectors/
 !/.gitignore

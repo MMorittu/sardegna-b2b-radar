@@ -24,6 +24,7 @@ jobs:
       - name: Verify CLI commands
         run: |
           .venv/bin/sardegna-radar init-db --db-path /tmp/radar.db
-          .venv/bin/sardegna-radar scan --demo --db-path /tmp/radar.db
+          .venv/bin/sardegna-radar parse-cme tests/fixtures/sample_cme.pdf --db-path /tmp/radar.db
           .venv/bin/sardegna-radar leads --db-path /tmp/radar.db
           .venv/bin/sardegna-radar stats --db-path /tmp/radar.db
+          .venv/bin/sardegna-radar export --output /tmp/digest.md --db-path /tmp/radar.db

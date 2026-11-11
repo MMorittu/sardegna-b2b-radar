@@ -1,201 +1,174 @@
 from __future__ import annotations
 
+from datetime import date
 import pytest
 from pytest_httpx import HTTPXMock
 
 from sardegna_radar.models import NoticeSource, NoticeType, SardinianProvince
 from sardegna_radar.scrapers.anac_api import ANACReverseAPIConnector
 from sardegna_radar.scrapers.base import build_async_http_client
-from sardegna_radar.scrapers.demo_feed import load_demo_notices
-from sardegna_radar.scrapers.sardegna_portals import (
-    SardegnaPortalAdaptiveScraper,
-    create_scrapling_mcp_server,
-)
+from sardegna_radar.scrapers.grants_ras_cciaa import GrantsConnector
+from sardegna_radar.scrapers.sardegna_cat import SardegnaCATConnector
+from sardegna_radar.scrapers.sardegna_portals import SardegnaPortalAdaptiveScraper
 
-
-CANONICAL_PORTAL_HTML = """
-<!DOCTYPE html>
-<html lang="it">
-<body>
-  <section id="elenco-bandi">
-    <article class="bando-item" data-id="SAR-2026-101">
-      <h3 class="bando-titolo">
-        <a href="/portale/bandi/SAR-2026-101">Lavori di realizzazione condotta idrica e pozzetti in C.A.V. DN 800 - Lotto Silanus-Macomer</a>
-      </h3>
-      <div class="bando-meta">
-        <span class="ente">Ente: Consorzio Industriale Provinciale Nuoro / Z.I. Macomer (NU)</span>
-        <span class="cig">CIG: B778899001</span>
-        <span class="cup">CUP: J34E26000110001</span>
-        <span class="importo">Importo: € 680.400,00 oltre IVA</span>
-        <span class="scadenza">Scadenza: 18/12/2026</span>
-      </div>
-      <p class="bando-descrizione">
-        Fornitura e posa di tubi in calcestruzzo armato vibrocompresso, pozzetti prefabbricati d'ispezione e cordoli stradali.
-      </p>
-    </article>
-  </section>
-</body>
-</html>
-"""
-
-DRIFTED_PORTAL_HTML = """
-<!DOCTYPE html>
-<html lang="it">
-<body>
-  <main class="new-portal-layout-2027">
-    <div class="tender-card-wrapper" id="SAR-2026-202">
-      <header>
-        <a class="card-headline-link" href="https://www.sardegnacat.it/gara/SAR-2026-202">
-          Ampliamento Cimitero Comunale di Bolotana (NU) - Fornitura 90 Loculi Prefabbricati in C.A.V.
-        </a>
-      </header>
-      <ul class="card-details">
-        <li>Stazione Appaltante: Comune di Bolotana (NU)</li>
-        <li>Codice Gara CIG [A554433221] - Importo a base di gara € 310.000,50</li>
-        <li>Termine presentazione offerte: 12/01/2027 ore 12:00</li>
-      </ul>
-      <div class="card-summary">
-        Realizzazione blocchi colombari prefabbricati in calcestruzzo vibrocompresso certificati CE/DoP e cunette stradali.
-      </div>
-    </div>
-  </main>
-</body>
-</html>
+SAMPLE_SCAT_RSS_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:afs="http://www.aflink.it/XMLBANDI">
+<channel>
+<afs:totRecord>2</afs:totRecord>
+<item>
+  <title><![CDATA[Bando]]></title>
+  <link><![CDATA[https://sardegnacat.regione.sardegna.it/portale/index.php/bandi?getdettaglio=yes&bando=109901&tipobando=Bando&RicQ=YES&VisQ=SI&tipoDoc=BANDO_GARA_PORTALE&xslt=XSLT_BANDO_GARA_PORTALE]]></link>
+  <pubDate>10/11/2026</pubDate>
+  <afs:Oggetto><![CDATA[Lavori di rifacimento condotta acque bianche con tubi C.A.V. e pozzetti a Macomer (NU) - CUP: J12B26000450002]]></afs:Oggetto>
+  <afs:Tipo><![CDATA[Bando]]></afs:Tipo>
+  <afs:EnteProponente><![CDATA[Comune di Macomer]]></afs:EnteProponente>
+  <afs:Contratto><![CDATA[Lavori]]></afs:Contratto>
+  <afs:a_base_asta><![CDATA[420.500,00]]></afs:a_base_asta>
+  <afs:DtScadenzaBandoTecnical><![CDATA[2026-12-15T13:00:00]]></afs:DtScadenzaBandoTecnical>
+  <afs:CIG><![CDATA[B49102F8AC]]></afs:CIG>
+  <afs:TipoDocOriginal><![CDATA[BANDO_GARA]]></afs:TipoDocOriginal>
+  <afs:IdMsg><![CDATA[109901]]></afs:IdMsg>
+  <afs:bEsito><![CDATA[0]]></afs:bEsito>
+  <afs:CPV><![CDATA[45231300-8 - Lavori di costruzione di condotte idriche e fognarie]]></afs:CPV>
+  <afs:DtPubblicazioneTecnical><![CDATA[2026-11-10T00:00:00]]></afs:DtPubblicazioneTecnical>
+</item>
+<item>
+  <title><![CDATA[Bando]]></title>
+  <link><![CDATA[https://sardegnacat.regione.sardegna.it/portale/index.php/bandi?bando=109902]]></link>
+  <afs:Oggetto><![CDATA[Servizio di pulizia uffici regionali]]></afs:Oggetto>
+  <afs:Tipo><![CDATA[Bando]]></afs:Tipo>
+  <afs:Contratto><![CDATA[Servizi]]></afs:Contratto>
+  <afs:IdMsg><![CDATA[109902]]></afs:IdMsg>
+</item>
+</channel>
+</rss>
 """
 
 
 class TestHTTPClientConfiguration:
-    def test_build_async_http_client_timeout_and_retries(self) -> None:
+    def test_build_async_http_client_uses_browser_compatible_ua(self) -> None:
         client = build_async_http_client()
-        assert client.timeout.read == 15.0
+        assert client.timeout.read == 20.0
         assert client.timeout.connect == 30.0
-        assert "sardegna-b2b-radar" in client.headers.get("User-Agent", "").lower()
+        assert "Mozilla/5.0" in client.headers.get("User-Agent", "")
 
 
-class TestANACReverseAPIConnector:
+class TestSardegnaCATConnector:
+    def test_parses_xml_rewrites_broken_portale_url_and_builds_zip_attachment_url(self) -> None:
+        connector = SardegnaCATConnector()
+        notices = connector.parse_rss_xml(SAMPLE_SCAT_RSS_XML)
+
+        # Must keep Lavori and drop pure Servizi
+        assert len(notices) == 1
+        n = notices[0]
+        assert n.source == NoticeSource.SARDEGNACAT
+        assert n.notice_type == NoticeType.PUBLIC_WORKS_TENDER
+        assert n.cig == "B49102F8AC"
+        assert n.cup == "J12B26000450002"
+        assert n.amount_eur == 420500.0
+        assert n.province == SardinianProvince.NU
+        assert "/portalegare/index.php/bandi" in n.url
+        assert "/portale/index.php/" not in n.url
+        assert n.attachment_url is not None
+        assert "DownloadAttach.asp" in n.attachment_url
+        assert "IDDOC=109901" in n.attachment_url
+        assert n.cpv_codes == ["45231300-8"]
+        assert n.deadline_date == date(2026, 12, 15)
+
+
+class TestGrantsAndCUCPortals:
     @pytest.mark.asyncio
-    async def test_fetch_releases_parses_ocds_json(self, httpx_mock: HTTPXMock) -> None:
-        sample_ocds_payload = {
-            "releases": [
-                {
-                    "ocid": "ocds-hu01ve-2026-001",
-                    "id": "rel-2026-001",
-                    "date": "2026-11-10T08:30:00Z",
-                    "buyer": {"name": "Abbanoa S.p.A. - Distretto Idrico Nuoro"},
-                    "tender": {
-                        "id": "B901234567",
-                        "title": "Rifacimento collettore fognario in tubi C.A.V. DN 1000 e pozzetti prefabbricati a Macomer",
-                        "description": "Opere fognarie in calcestruzzo vibrocompresso con marcatura CE/DoP.",
-                        "value": {"amount": 945200.50, "currency": "EUR"},
-                        "tenderPeriod": {"endDate": "2026-12-22T12:00:00Z"},
-                        "items": [
-                            {
-                                "classification": {"id": "45231300-8"},
-                                "deliveryAddresses": [
-                                    {"locality": "Macomer", "region": "ITG2E", "province": "NU"}
-                                ],
-                            }
-                        ],
-                    },
-                    "awards": [
+    async def test_ras_graphql_parses_published_grants(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url="https://graphql-prod.regione.sardegna.it/graphql/",
+            method="POST",
+            json={
+                "data": {
+                    "getContents": [
                         {
-                            "status": "active",
-                            "suppliers": [{"name": "Impresa Idraulica Sarda S.r.l."}],
+                            "_id": "ras-901",
+                            "slug": "bando-artigiani-2026",
+                            "titolo": "Contributi a fondo perduto per investimenti produttivi imprese artigiane (ATECO 23)",
+                            "breve": "Agevolazioni per acquisto macchinari e stampi.",
+                            "oggetto": "",
+                            "descrizione": "Bando regionale destinato alle imprese iscritte all'Albo Artigiani della Sardegna.",
+                            "dataPubblicazione": "2026-11-02",
+                            "dataScadenza": "2027-01-31",
+                            "cig": None,
+                            "cup": "E78I26000120002",
+                            "tipologia": "Bandi per le imprese",
                         }
-                    ],
-                },
-                {
-                    "ocid": "ocds-hu01ve-2026-non-sardegna",
-                    "id": "rel-lombardia-999",
-                    "buyer": {"name": "Comune di Milano"},
-                    "tender": {
-                        "id": "C111222333",
-                        "title": "Manutenzione strade Milano",
-                        "items": [
-                            {
-                                "classification": {"id": "45233140-2"},
-                                "deliveryAddresses": [{"locality": "Milano", "region": "ITC4C"}],
-                            }
-                        ],
-                    },
-                },
-            ]
-        }
-
-        endpoint = "https://dati.anticorruzione.it/opendata/ocds/api/v1/releases"
-        httpx_mock.add_response(url=endpoint, json=sample_ocds_payload, status_code=200)
-
-        connector = ANACReverseAPIConnector(endpoint_url=endpoint)
-        notices = await connector.fetch_notices()
-
-        assert len(notices) == 1
-        notice = notices[0]
-        assert notice.source == NoticeSource.ANAC_OCDS
-        assert notice.cig == "B901234567"
-        assert notice.amount_eur == 945200.50
-        assert notice.municipality == "Macomer"
-        assert notice.province == SardinianProvince.NU
-        assert notice.winner_company == "Impresa Idraulica Sarda S.r.l."
-        assert notice.notice_type == NoticeType.CONTRACT_AWARD
-        assert "45231300-8" in notice.cpv_codes
-
-        requests = httpx_mock.get_requests()
-        assert len(requests) == 1
-
-
-class TestSardegnaPortalAdaptiveScraper:
-    def test_parse_canonical_and_drifted_dom_with_scrapling_adaptive(self, tmp_path) -> None:
-        scraper = SardegnaPortalAdaptiveScraper(
-            source=NoticeSource.SARDEGNACAT,
-            base_url="https://www.sardegnacat.it",
-            storage_dir=tmp_path / "adaptive",
+                    ]
+                }
+            },
         )
+        connector = GrantsConnector()
+        notices = await connector.fetch_ras_grants()
+        assert len(notices) == 1
+        assert notices[0].source == NoticeSource.RAS
+        assert notices[0].notice_type == NoticeType.REGIONAL_GRANT
+        assert notices[0].url == "https://www.regione.sardegna.it/atti-bandi-archivi/atti-amministrativi/bandi/bando-artigiani-2026"
+        assert notices[0].cup == "E78I26000120002"
 
-        # 1. Parse canonical HTML (saves adaptive fingerprints via auto_save=True)
-        canonical_notices = scraper.parse_html(CANONICAL_PORTAL_HTML)
-        assert len(canonical_notices) == 1
-        first = canonical_notices[0]
-        assert first.cig == "B778899001"
-        assert first.cup == "J34E26000110001"
-        assert first.amount_eur == 680400.0
-        assert first.province == SardinianProvince.NU
-        assert first.url == "https://www.sardegnacat.it/portale/bandi/SAR-2026-101"
+    def test_cciaa_nuoro_html_extracts_grant_links(self) -> None:
+        sample_cciaa_html = """
+        <html><body><main id="main">
+          <ul>
+            <li>
+              <a href="/it/camera/bandi/contributi-attivita-promozionali/bando-doppia-transizione-2026/">
+                Bando Doppia Transizione 2026: Contributi a fondo perduto per la digitalizzazione e la sostenibilità delle imprese
+              </a>
+            </li>
+          </ul>
+        </main></body></html>
+        """
+        connector = GrantsConnector()
+        notices = connector.parse_cciaa_nuoro_html(sample_cciaa_html)
+        assert len(notices) == 1
+        assert notices[0].source == NoticeSource.CCIAA_NUORO
+        assert notices[0].notice_type == NoticeType.REGIONAL_GRANT
+        assert notices[0].url.startswith("https://nu.camcom.it/")
 
-        # 2. Parse drifted DOM where CSS classes and wrapper tags completely changed
-        drifted_notices = scraper.parse_html(DRIFTED_PORTAL_HTML)
-        assert len(drifted_notices) == 1
-        second = drifted_notices[0]
-        assert second.cig == "A554433221"
-        assert second.amount_eur == 310000.5
-        assert second.province == SardinianProvince.NU
-        assert "Loculi Prefabbricati" in second.title
+    def test_cuc_municipium_html_extracts_tender_documents(self) -> None:
+        cuc_html = """
+        <html><body><main>
+          <div class="card">
+            <a href="/it/documenti/bando-cimitero-bolotana-bcb16fc2f3">
+              Procedura aperta lavori messa in sicurezza cimitero di Bolotana - CIG BCB16FC2F3 - € 187.389,27
+            </a>
+          </div>
+        </main></body></html>
+        """
+        scraper = SardegnaPortalAdaptiveScraper(
+            source=NoticeSource.CUC_LOCALE,
+            base_url="https://comunitamontananuorese.it",
+        )
+        notices = scraper.parse_html(cuc_html, page_url="https://comunitamontananuorese.it/it/amministrazione/documenti/albo/atti/bando-di-gara")
+        assert len(notices) == 1
+        assert notices[0].cig == "BCB16FC2F3"
+        assert notices[0].url == "https://comunitamontananuorese.it/it/documenti/bando-cimitero-bolotana-bcb16fc2f3"
 
     @pytest.mark.asyncio
-    async def test_fetch_and_parse_portal_html_over_httpx(self, httpx_mock: HTTPXMock, tmp_path) -> None:
-        portal_url = "https://www.sardegnacat.it/esop/ita-ras-host/public/web/bandi.jst"
-        httpx_mock.add_response(url=portal_url, text=CANONICAL_PORTAL_HTML, status_code=200)
-
-        scraper = SardegnaPortalAdaptiveScraper(
-            source=NoticeSource.SARDEGNACAT,
-            base_url="https://www.sardegnacat.it",
-            storage_dir=tmp_path / "adaptive",
+    async def test_anac_ocds_legacy_json_still_parses(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url="https://example.org/ocds.json",
+            json={
+                "releases": [
+                    {
+                        "id": "rel-1",
+                        "date": "2026-11-10T08:00:00Z",
+                        "buyer": {"name": "Comune di Silanus"},
+                        "tender": {
+                            "id": "B901234567",
+                            "title": "Fornitura tubi C.A.V. DN 800 a Silanus",
+                            "value": {"amount": 150000.0},
+                            "items": [{"classification": {"id": "45231300-8"}, "deliveryAddresses": [{"locality": "Silanus", "region": "ITG2E"}]}],
+                        },
+                    }
+                ]
+            },
         )
-        notices = await scraper.fetch_notices(portal_url)
+        connector = ANACReverseAPIConnector(endpoint_url="https://example.org/ocds.json")
+        notices = await connector.fetch_notices()
         assert len(notices) == 1
-        assert notices[0].cig == "B778899001"
-
-    def test_demo_feed_contains_diverse_sardinian_tenders(self) -> None:
-        demo_notices = load_demo_notices()
-        assert len(demo_notices) >= 6
-        sources = {n.source for n in demo_notices}
-        assert NoticeSource.ANAC_OCDS in sources
-        assert NoticeSource.SARDEGNACAT in sources
-        assert NoticeSource.RAS in sources
-        assert NoticeSource.CCIAA_NUORO in sources
-
-    def test_create_scrapling_mcp_server_helper(self) -> None:
-        # Verify the MCP helper cleanly instantiates or reports optional dependency status
-        server_info = create_scrapling_mcp_server(dry_run=True)
-        assert server_info["cli_command"] == "scrapling mcp"
-        assert server_info["host"] == "127.0.0.1"
-        assert server_info["port"] == 8000
+        assert notices[0].cig == "B901234567"

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sardegna-b2b-radar"
-version = "0.1.0"
+version = "1.1.0"
 description = "Hybrid Reverse-API & Adaptive Scrapling B2B Tender and Regional Grant Intelligence Radar for Sardinia"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,7 @@ keywords = ["procurement", "sardinia", "b2b", "scrapling", "anac", "tenders", "c
 dependencies = [
     "scrapling>=0.4.15",
     "httpx>=0.28.1",
+    "pdfplumber>=0.11.4",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.3.0",
     "typer>=0.12.3",
@@ -23,9 +24,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mcp = [
-    "scrapling[ai]>=0.4.15",
-]
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.7",

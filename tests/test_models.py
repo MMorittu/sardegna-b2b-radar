@@ -1,19 +1,31 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
 from sardegna_radar.config import RadarSettings
+from sardegna_radar.exceptions import (
+    CMEParseError,
+    RadarError,
+    RadarNetworkError,
+    StorageError,
+    UrlValidationError,
+)
 from sardegna_radar.models import (
     CAVProductCategory,
+    CMEItem,
+    CRMStatus,
     LogisticsTier,
     MatchAssessment,
     NoticeSource,
     NoticeType,
+    ProductLine,
     SardinianProvince,
     ScoredLead,
     TenderNotice,
+    estimate_company_distance_from_tax_id,
     normalize_cig,
     parse_italian_currency,
     parse_italian_date,
@@ -28,9 +40,15 @@ class TestCurrencyAndDateParsers:
             ("€ 1.240.500,75", 1240500.75),
             ("€ 145.200,00 oltre IVA", 145200.0),
             ("Importo a base d'asta: Euro 89.450,50 (IVA esclusa)", 89450.5),
+            ("2´981,89", 2981.89),
+            ("12´117,68 €", 12117.68),
+            ("1´184´875,50", 1184875.50),
+            ("2'981,89", 2981.89),
             ("1250000.50", 1250000.5),
             ("350.000", 350000.0),
             ("45,50 €", 45.5),
+            ("0,450", 0.45),
+            ("1,250", 1.25),
             (420000, 420000.0),
             (185000.25, 185000.25),
             (None, None),
@@ -38,7 +56,9 @@ class TestCurrencyAndDateParsers:
             ("Non determinato", None),
         ],
     )
-    def test_parse_italian_currency(self, raw: str | float | int | None, expected: float | None) -> None:
+    def test_parse_italian_currency_and_primus_numbers(
+        self, raw: str | float | int | None, expected: float | None
+    ) -> None:
         assert parse_italian_currency(raw) == expected
 
     @pytest.mark.parametrize(
@@ -59,13 +79,15 @@ class TestCurrencyAndDateParsers:
         assert parse_italian_date(raw) == expected
 
 
-class TestCigAndProvinceNormalization:
+class TestCigProvinceAndTaxIdDistance:
     @pytest.mark.parametrize(
         ("raw_cig", "expected"),
         [
             ("b2a94f10c8", "B2A94F10C8"),
+            ("BCB16FC2F3", "BCB16FC2F3"),
             ("CIG: A04F92B11E", "A04F92B11E"),
             ("  cig [987654321a] ", "987654321A"),
+            (["BCB16FC2F3"], "BCB16FC2F3"),
             ("SHORT", None),
             (None, None),
             ("", None),
@@ -78,7 +100,7 @@ class TestCigAndProvinceNormalization:
         ("hint", "expected"),
         [
             ("NU", SardinianProvince.NU),
-            ("Nuoro", SardinianProvince.NU),
+            ("NUORO", SardinianProvince.NU),
             ("Comune di Macomer (NU)", SardinianProvince.NU),
             ("Comune di Silanus", SardinianProvince.NU),
             ("Sassari", SardinianProvince.SS),
@@ -86,6 +108,8 @@ class TestCigAndProvinceNormalization:
             ("Oristano (OR)", SardinianProvince.OR),
             ("Cagliari", SardinianProvince.CA),
             ("Carbonia - Sud Sardegna (SU)", SardinianProvince.SU),
+            ("Comune di Atzara", SardinianProvince.NU),
+            ("Messa in sicurezza caduta massi parete rocciosa", SardinianProvince.REGIONAL),
             ("Regione Autonoma della Sardegna", SardinianProvince.REGIONAL),
             (None, SardinianProvince.REGIONAL),
         ],
@@ -93,60 +117,94 @@ class TestCigAndProvinceNormalization:
     def test_resolve_sardinian_province(self, hint: str | None, expected: SardinianProvince) -> None:
         assert resolve_sardinian_province(hint) == expected
 
+    @pytest.mark.parametrize(
+        ("tax_id", "expected_prov", "expected_km"),
+        [
+            ("03811400922", "CA", 155),  # FL. Costruzioni & Servizi S.r.l. (Bolotana winner, prov CA=092)
+            ("00799740915", "NU", 38),   # Edilmorittu S.r.l. (prov NU=091)
+            ("01234560951", "OR", 64),   # Oristano (095)
+            ("01234560902", "SS", 78),   # Sassari (090)
+            ("01234560159", "EXTRA_ISOLA", 650),  # Milano (015) -> mainland contractor!
+            ("MRTMSM05E17F979W", "NU", 38),  # Sole proprietor CF born/based in Nuoro (F979)
+            (None, None, None),
+        ],
+    )
+    def test_estimate_company_distance_from_tax_id(
+        self, tax_id: str | None, expected_prov: str | None, expected_km: int | None
+    ) -> None:
+        prov, km = estimate_company_distance_from_tax_id(tax_id)
+        assert prov == expected_prov
+        assert km == expected_km
 
-class TestTenderNoticeAndLeadModels:
-    def test_tender_notice_normalizes_fields(self) -> None:
-        notice = TenderNotice(
-            external_id="ras-2026-0091",
-            source=NoticeSource.RAS,
-            notice_type=NoticeType.PUBLIC_WORKS_TENDER,
-            title="  Lavori di rifacimento condotta fognaria in C.A.V. a Macomer  ",
-            description="Fornitura e posa tubazioni in calcestruzzo vibrocompresso DN 800 e pozzetti.",
-            contracting_authority="Abbanoa S.p.A. - Distretto di Nuoro",
-            cig="cig: b49102f8ac",
-            cup="j12b26000450002",
-            cpv_codes=["45231300-8", " 44114200-4 "],
-            amount_eur="€ 1.240.500,75 oltre IVA",
-            published_date="10/11/2026",
-            deadline_date="15/12/2026 ore 13:00",
-            municipality="Macomer",
-            province="Nuoro",
-            url="https://www.regione.sardegna.it/atti/ras-2026-0091",
+
+class TestDomainModelsAndEdilmorittuConfig:
+    def test_no_demo_source_in_enum(self) -> None:
+        assert "demo" not in [s.value for s in NoticeSource]
+
+    def test_exception_hierarchy(self) -> None:
+        assert issubclass(RadarNetworkError, RadarError)
+        assert issubclass(UrlValidationError, RadarError)
+        assert issubclass(CMEParseError, RadarError)
+        assert issubclass(StorageError, RadarError)
+
+    def test_tender_notice_v23_and_cme_items(self) -> None:
+        cme_item = CMEItem(
+            item_number=12,
+            tariff_code="SAR26_PF.0003.0015.0002.A",
+            description="Pozzetto prefabbricato in cls vibrocompresso 50x50 con griglia in ghisa",
+            unit="cad.",
+            quantity="8,00",
+            unit_price_eur="193,04",
+            total_price_eur="1´544,32",
+            product_line=ProductLine.LINEA_A,
+            category=CAVProductCategory.MANHOLES_CHAMBERS,
+            matched_catalog_label="Pozzetti cls 50x50 + chiusini/caditoie",
         )
+        assert cme_item.quantity == 8.0
+        assert cme_item.total_price_eur == 1544.32
 
-        assert notice.cig == "B49102F8AC"
-        assert notice.cup == "J12B26000450002"
-        assert notice.amount_eur == 1240500.75
-        assert notice.published_date == date(2026, 11, 10)
-        assert notice.deadline_date == date(2026, 12, 15)
-        assert notice.province == SardinianProvince.NU
-        assert notice.cpv_codes == ["45231300-8", "44114200-4"]
-        assert notice.title == "Lavori di rifacimento condotta fognaria in C.A.V. a Macomer"
-
-    def test_scored_lead_validation_and_priority(self) -> None:
         notice = TenderNotice(
-            external_id="anac-991",
+            external_id="BCB16FC2F3",
             source=NoticeSource.ANAC_OCDS,
-            title="Ampliamento cimitero comunale loculi prefabbricati",
-            contracting_authority="Comune di Bolotana",
-            cig="A123456789",
-            amount_eur=380000.0,
+            notice_type=NoticeType.CONTRACT_AWARD,
+            title="Interventi urgenti messa in sicurezza cimitero comunale di Bolotana",
+            contracting_authority="COMUNE DI BOLOTANA",
+            cig="BCB16FC2F3",
+            cup="I12F25000400006",
+            amount_eur=187389.27,
+            award_amount_eur=147411.79,
+            discount_pct=21.62,
+            winner_company="FL. COSTRUZIONI & SERVIZI S.R.L.",
+            winner_tax_id="03811400922",
+            rup_name="GIULIANO CORRIAS",
+            contract_started=False,
+            has_subcontracts=False,
             municipality="Bolotana",
-            province="NU",
-            url="https://dati.anticorruzione.it/bando/A123456789",
+            province="NUORO",
+            url="https://dati.anticorruzione.it/opendata/dataset/cig-2026",
+            http_status=200,
         )
+        assert notice.winner_province == "CA"
+        assert notice.winner_distance_km == 155
+        assert notice.contract_started is False
+        assert notice.has_subcontracts is False
+
         assessment = MatchAssessment(
-            score=88.5,
-            matched_categories=[CAVProductCategory.CEMETERY_NICHES, CAVProductCategory.MANHOLES_CHAMBERS],
-            matched_keywords=["loculi prefabbricati", "cimitero", "pozzetti"],
-            cpv_bonus_applied=True,
+            score=92.0,
+            matched_categories=[CAVProductCategory.MANHOLES_CHAMBERS],
+            matched_lines=[ProductLine.LINEA_A, ProductLine.LINEA_B],
             logistics_tier=LogisticsTier.TIER_1_CORE,
             estimated_distance_km=11,
-            rationale="Direct C.A.V. cemetery expansion within 15km of Silanus plant.",
         )
-        lead = ScoredLead(notice=notice, assessment=assessment)
+        lead = ScoredLead(
+            notice=notice,
+            assessment=assessment,
+            cme_items=[cme_item],
+            crm_status=CRMStatus.DA_CHIAMARE,
+        )
         assert lead.is_high_priority is True
-        assert lead.dedup_key == "anac_ocds:A123456789"
+        assert lead.crm_status == CRMStatus.DA_CHIAMARE
+        assert len(lead.cme_items) == 1
 
     def test_invalid_score_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
@@ -157,12 +215,14 @@ class TestTenderNoticeAndLeadModels:
                 logistics_tier=LogisticsTier.TIER_3_ISLAND,
             )
 
-    def test_radar_settings_defaults(self, tmp_path) -> None:
-        settings = RadarSettings(db_path=tmp_path / "custom.db")
-        assert settings.company_name == "Sardegna Prefabbricati C.A.V. S.r.l."
-        assert settings.company_piva == "00000000000"
+    def test_edilmorittu_settings_defaults(self, tmp_path: Path) -> None:
+        settings = RadarSettings(_env_file=None)
+        assert settings.company_name == "EDILMORITTU S.R.L."
+        assert settings.company_piva == "00799740915"
+        assert settings.company_rea == "NU-49501"
+        assert settings.company_albo_artigiani == "NU-23034"
         assert settings.company_base_municipality == "Silanus"
-        assert settings.http_max_retries == 3
-        assert settings.http_timeout_seconds == 15.0
-        assert settings.http_connect_timeout_seconds == 30.0
+        assert settings.company_base_province == "NU"
+        assert settings.db_path == Path("data/radar.db")
         assert settings.telegram_enabled is False
+        assert settings.supabase_enabled is False
