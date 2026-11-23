@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import pytest
 
@@ -15,7 +15,7 @@ from sardegna_radar.models import (
 )
 
 
-class TestSilanusLogisticsTiering:
+class TestLogisticsTiering:
     @pytest.mark.parametrize(
         ("municipality", "province", "expected_tier", "max_km"),
         [
@@ -46,7 +46,7 @@ class TestSilanusLogisticsTiering:
         assert distance_km <= max_km
 
 
-class TestEdilmorittuCatalogScoring:
+class TestCatalogScoring:
     @pytest.fixture
     def engine(self) -> CAVScoringEngine:
         return CAVScoringEngine()
@@ -72,7 +72,7 @@ class TestEdilmorittuCatalogScoring:
         assert CAVProductCategory.SPECIAL_PRECAST_CAV in lead.assessment.matched_categories
         assert lead.is_high_priority is True
 
-    def test_linea_b_resale_scores_high_within_40km_of_silanus(self, engine: CAVScoringEngine) -> None:
+    def test_linea_b_resale_scores_high_within_40km_of_hub(self, engine: CAVScoringEngine) -> None:
         notice = TenderNotice(
             external_id="bolotana-manut-01",
             source=NoticeSource.CUC_LOCALE,

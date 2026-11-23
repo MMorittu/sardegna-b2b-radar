@@ -377,7 +377,7 @@ class ANACReverseAPIConnector:
                 started_cigs=started_cigs,
                 subcontract_cigs=subcontract_cigs,
             )
-            # Rank all Sardinian monthly works by Edilmorittu relevance BEFORE applying `limit`!
+            # Rank all Sardinian monthly works by catalog relevance BEFORE applying `limit`!
             from sardegna_radar.matcher.cav_engine import CAVScoringEngine
 
             scorer = CAVScoringEngine()

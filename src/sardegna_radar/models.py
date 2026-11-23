@@ -1,4 +1,4 @@
-"""Domain models and deterministic Italian procurement normalizers (ANAC v2.3 & Catalog)."""
+﻿"""Domain models and deterministic Italian procurement normalizers (ANAC v2.3 & Catalog)."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ class ProductLine(StrEnum):
     """Sardinian Precast & Construction Supplier commercial business lines."""
 
     LINEA_A = "linea_a"  # Produzione Propria C.A.V. & Vibrocompresso (ATECO 23.61.0 - Tutta Sardegna)
-    LINEA_B = "linea_b"  # Rivendita Edile, Inerti, Ferro & Termoidraulica (ATECO 47.52 - <=40km Silanus)
+    LINEA_B = "linea_b"  # Rivendita Edile, Inerti, Ferro & Termoidraulica (ATECO 47.52 - <=40km hub)
 
 
 class CRMStatus(StrEnum):
@@ -82,9 +82,9 @@ class CAVProductCategory(StrEnum):
 class LogisticsTier(StrEnum):
     """Road freight tiers measured from Central Sardinia Logistics Hub."""
 
-    TIER_1_CORE = "Tier 1 (<40 km da Silanus: Marghine, Goceano, Nuorese, Alto Oristanese)"
-    TIER_2_CENTRAL = "Tier 2 (40-100 km da Silanus: Sassarese, Oristano, Ogliastra, Gallura Sud)"
-    TIER_3_ISLAND = "Tier 3 (>100 km da Silanus: Cagliari, Sulcis, Basso Campidano, Alta Gallura)"
+    TIER_1_CORE = "Tier 1 (<40 km da hub: Marghine, Goceano, Nuorese, Alto Oristanese)"
+    TIER_2_CENTRAL = "Tier 2 (40-100 km da hub: Sassarese, Oristano, Ogliastra, Gallura Sud)"
+    TIER_3_ISLAND = "Tier 3 (>100 km da hub: Cagliari, Sulcis, Basso Campidano, Alta Gallura)"
 
 
 @functools.lru_cache(maxsize=1)
@@ -232,8 +232,8 @@ _PROVINCE_KEYWORDS: tuple[tuple[SardinianProvince, tuple[str, ...]], ...] = (
     ),
 )
 
-# Italian VAT provincial office code (digits 8-10 of 11-digit P.IVA) -> (Province code, approx km from Silanus)
-_PIVA_OFFICE_TO_SILANUS_KM: dict[str, tuple[str, int]] = {
+# Italian VAT provincial office code (digits 8-10 of 11-digit P.IVA) -> (Province code, approx km from logistics hub)
+_PIVA_OFFICE_TO_HUB_KM: dict[str, tuple[str, int]] = {
     "091": ("NU", 38),
     "095": ("OR", 64),
     "090": ("SS", 78),
@@ -241,7 +241,7 @@ _PIVA_OFFICE_TO_SILANUS_KM: dict[str, tuple[str, int]] = {
 }
 
 # Common Sardinian Belfiore municipality codes in 16-char sole-proprietor Codice Fiscale -> (Prov, km from Silanus)
-_BELFIORE_TO_SILANUS_KM: dict[str, tuple[str, int]] = {
+_BELFIORE_TO_HUB_KM: dict[str, tuple[str, int]] = {
     "I730": ("NU", 2),    # Silanus
     "A948": ("NU", 11),   # Bolotana
     "E788": ("NU", 15),   # Macomer
@@ -267,7 +267,7 @@ _BELFIORE_TO_SILANUS_KM: dict[str, tuple[str, int]] = {
 
 
 def estimate_company_distance_from_tax_id(tax_id: str | None) -> tuple[str | None, int | None]:
-    """Estimate contractor HQ province & road distance from Silanus using Italian P.IVA or CF."""
+    """Estimate contractor HQ province & road distance from logistics hub using Italian P.IVA or CF."""
     if not tax_id:
         return None, None
     cleaned = re.sub(r"^(?:IT|CF|PIVA)[:\s\-]*", "", tax_id.strip(), flags=re.IGNORECASE).strip()
@@ -275,15 +275,15 @@ def estimate_company_distance_from_tax_id(tax_id: str | None) -> tuple[str | Non
 
     if patterns["piva_11"].match(cleaned):
         office_code = cleaned[7:10]
-        if office_code in _PIVA_OFFICE_TO_SILANUS_KM:
-            return _PIVA_OFFICE_TO_SILANUS_KM[office_code]
+        if office_code in _PIVA_OFFICE_TO_HUB_KM:
+            return _PIVA_OFFICE_TO_HUB_KM[office_code]
         return "EXTRA_ISOLA", 650
 
     cf_match = patterns["cf_16"].match(cleaned)
     if cf_match:
         belfiore = cf_match.group(1).upper()
-        if belfiore in _BELFIORE_TO_SILANUS_KM:
-            return _BELFIORE_TO_SILANUS_KM[belfiore]
+        if belfiore in _BELFIORE_TO_HUB_KM:
+            return _BELFIORE_TO_HUB_KM[belfiore]
         if belfiore.startswith("Z"):
             return "ESTERO", 900
         return "ITALIA", 400
@@ -550,7 +550,7 @@ class TenderNotice(BaseModel):
 
 
 class MatchAssessment(BaseModel):
-    """Deterministic Catalog relevance score, matched catalog lines, and Silanus logistics."""
+    """Deterministic Catalog relevance score, matched catalog lines, and regional logistics."""
 
     score: float = Field(ge=0.0, le=100.0)
     matched_categories: list[CAVProductCategory] = Field(default_factory=list)

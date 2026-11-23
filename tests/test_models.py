@@ -121,7 +121,7 @@ class TestCigProvinceAndTaxIdDistance:
         ("tax_id", "expected_prov", "expected_km"),
         [
             ("03811400922", "CA", 155),  # FL. Costruzioni & Servizi S.r.l. (Bolotana winner, prov CA=092)
-            ("00799740915", "NU", 38),   # Edilmorittu S.r.l. (prov NU=091)
+            ("01234560910", "NU", 38),   # Nuoro contractor (prov NU=091)
             ("01234560951", "OR", 64),   # Oristano (095)
             ("01234560902", "SS", 78),   # Sassari (090)
             ("01234560159", "EXTRA_ISOLA", 650),  # Milano (015) -> mainland contractor!
@@ -137,7 +137,7 @@ class TestCigProvinceAndTaxIdDistance:
         assert km == expected_km
 
 
-class TestDomainModelsAndEdilmorittuConfig:
+class TestDomainModelsAndCompanyConfig:
     def test_no_demo_source_in_enum(self) -> None:
         assert "demo" not in [s.value for s in NoticeSource]
 

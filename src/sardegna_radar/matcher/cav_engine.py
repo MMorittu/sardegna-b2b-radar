@@ -1,4 +1,4 @@
-"""Sardinian Precast & Construction Supplier (Silanus, NU) Linea A & Linea B scoring engine with Hard Exclusions."""
+﻿"""Sardinian Precast & Construction Supplier Linea A & Linea B scoring engine with Hard Exclusions."""
 
 from __future__ import annotations
 
@@ -38,8 +38,8 @@ class _NegativeRule:
     hard_block: bool = False
 
 
-# Road distance in km from Sardinian Precast & Construction Supplier plant (SS 129 km 82,200, Silanus NU)
-_SILANUS_DISTANCE_KM: dict[str, int] = {
+# Road distance in km from Sardinian Precast & Construction Supplier plant (Central Sardinia Hub)
+_LOGISTICS_HUB_DISTANCE_KM: dict[str, int] = {
     "silanus": 2,
     "lei": 6,
     "bortigali": 9,
@@ -224,7 +224,7 @@ def _compiled_negative_rules() -> tuple[_NegativeRule, ...]:
 
 @functools.lru_cache(maxsize=1)
 def _compiled_town_distances() -> tuple[tuple[re.Pattern[str], int], ...]:
-    ordered = sorted(_SILANUS_DISTANCE_KM.items(), key=lambda kv: len(kv[0]), reverse=True)
+    ordered = sorted(_LOGISTICS_HUB_DISTANCE_KM.items(), key=lambda kv: len(kv[0]), reverse=True)
     return tuple((re.compile(rf"\b{re.escape(town)}\b", re.IGNORECASE), km) for town, km in ordered)
 
 
@@ -232,7 +232,7 @@ def compute_logistics_tier(
     municipality: str | None,
     province: SardinianProvince,
 ) -> tuple[LogisticsTier, int | None]:
-    """Resolve freight tier & road km from Sardinian Precast & Construction Supplier plant in Silanus (NU)."""
+    """Resolve freight tier & road km from Sardinian Precast & Construction Supplier central logistics hub."""
     if municipality:
         cleaned = municipality.strip()
         for town_pat, km in _compiled_town_distances():
@@ -283,7 +283,7 @@ def _build_recommended_action(
         winner = notice.winner_company or "Impresa aggiudicataria"
         piva = f" (P.IVA {notice.winner_tax_id})" if notice.winner_tax_id else ""
         dist = (
-            f" [sede ~{notice.winner_distance_km} km da Silanus]"
+            f" [sede ~{notice.winner_distance_km} km da hub]"
             if notice.winner_distance_km is not None
             else ""
         )
@@ -294,7 +294,7 @@ def _build_recommended_action(
 
 
 class CAVScoringEngine:
-    """Deterministic Catalog S.R.L. Linea A + Linea B matcher & Silanus logistics scorer."""
+    """Deterministic Catalog S.R.L. Linea A + Linea B matcher & regional logistics scorer."""
 
     def score_notice(
         self,
@@ -378,7 +378,7 @@ class CAVScoringEngine:
         )
         if (raw_score > 0 or resolved_cme) and notice.notice_type == NoticeType.CONTRACT_AWARD:
             raw_score += 20.0 if priority_unstarted else 10.0
-            # Extra commercial leverage when winner HQ is >80 km from Silanus while job site is <=40 km!
+            # Extra commercial leverage when winner HQ is >80 km from hub while job site is <=40 km!
             if (notice.winner_distance_km or 0) >= 80:
                 raw_score += 8.0
 
@@ -398,7 +398,7 @@ class CAVScoringEngine:
             rationale_parts.append("Aggiudicata con avvioContratto=[] e subappalti=[]")
         if negative_flags:
             rationale_parts.append("Esclusioni: " + ", ".join(negative_flags))
-        rationale_parts.append(f"Cantiere: {tier.value.split('(')[0].strip()} ({distance_km or 'N/D'} km da Silanus)")
+        rationale_parts.append(f"Cantiere: {tier.value.split('(')[0].strip()} ({distance_km or 'N/D'} km da hub)")
 
         assessment = MatchAssessment(
             score=final_score,

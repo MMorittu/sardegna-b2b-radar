@@ -61,7 +61,7 @@ def _strip_html(raw: Any) -> str:
 
 
 class GrantsConnector:
-    """Fetches non-repayable regional & chamber of commerce grants for EDILMORITTU S.R.L."""
+    """Fetches non-repayable regional & chamber of commerce grants for configured artisan enterprise"""
 
     def __init__(self, settings: RadarSettings | None = None) -> None:
         self.settings = settings or RadarSettings()

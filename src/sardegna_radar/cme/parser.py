@@ -1,4 +1,4 @@
-"""Streaming PDF / ZIP / P7M Computo Metrico Estimativo (CME) parser."""
+﻿"""Streaming PDF / ZIP / P7M Computo Metrico Estimativo (CME) parser."""
 
 from __future__ import annotations
 
@@ -404,7 +404,7 @@ class CMEParser:
                         {
                             "role": "system",
                             "content": (
-                                "Sei il tecnico preventivista di Sardinian Precast & Construction Supplier (Silanus, NU). "
+                                "Sei il tecnico preventivista di Sardinian Precast & Construction Supplier (Sardegna). "
                                 "Escludi SEMPRE pietra naturale (basalto, marmo, granito, travertino) e "
                                 "calcestruzzo liquido da autobetoniera (>1t). Restituisci JSON {\"matches\": []}."
                             ),

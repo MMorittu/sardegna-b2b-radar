@@ -32,7 +32,7 @@ class TestPortableSampleCMEFixture:
 
 @pytest.mark.skipif(not BOLOTANA_CME_PDF.exists(), reason="Bolotana ground-truth PDF not present on disk")
 class TestBolotanaRealCMEParser:
-    def test_extracts_exact_edilmorittu_items_and_rejects_stone_and_readymix(self) -> None:
+    def test_extracts_exact_catalog_items_and_rejects_stone_and_readymix(self) -> None:
         parser = CMEParser()
         result = parser.parse_path(BOLOTANA_CME_PDF)
 

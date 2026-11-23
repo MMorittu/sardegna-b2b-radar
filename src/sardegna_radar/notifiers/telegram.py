@@ -1,4 +1,4 @@
-"""Ultra-compact Telegram HTML, WhatsApp text, and Markdown commercial digest formatters."""
+﻿"""Ultra-compact Telegram HTML, WhatsApp text, and Markdown commercial digest formatters."""
 
 from __future__ import annotations
 
@@ -73,12 +73,12 @@ def _materials_lines(lead: ScoredLead, max_items: int = 12) -> list[str]:
 
 
 def format_lead_whatsapp_text(lead: ScoredLead) -> str:
-    """Render an ultra-compact, zero-fluff WhatsApp message ready for Graziano & Giovanni Antonio."""
+    """Render an ultra-compact, zero-fluff WhatsApp message ready for il team commerciale."""
     n = lead.notice
     a = lead.assessment
     cig_str = n.cig or n.external_id
     loc_str = f"{n.municipality or 'Sardegna'} ({n.province.value})"
-    km_str = f"{a.estimated_distance_km} km da Silanus" if a.estimated_distance_km is not None else "Sardegna"
+    km_str = f"{a.estimated_distance_km} km dal polo logistico" if a.estimated_distance_km is not None else "Sardegna"
 
     lines = [
         f"🎯 *[{a.score:.0f}/100] {n.title}*",
@@ -107,7 +107,7 @@ def format_lead_telegram_html(lead: ScoredLead) -> str:
     a = lead.assessment
     cig_str = n.cig or n.external_id
     loc_str = f"{n.municipality or 'Sardegna'} ({n.province.value})"
-    km_str = f"{a.estimated_distance_km} km da Silanus" if a.estimated_distance_km is not None else "Sardegna"
+    km_str = f"{a.estimated_distance_km} km dal polo logistico" if a.estimated_distance_km is not None else "Sardegna"
 
     lines = [
         f"🎯 <b>[{a.score:.0f}/100] {html.escape(n.title)}</b>",
@@ -137,7 +137,7 @@ def render_markdown_digest(
 ) -> str:
     """Render qualified leads into a concise Markdown commercial digest (`data/leads_digest.md`)."""
     lines = [
-        f"# Radar Commerciale B2B — {company_name} (P.IVA 00000000000, Silanus NU)",
+        f"# Radar Commerciale B2B — {company_name} (Configured Logistics Hub)",
         f"**Opportunità Verificate Live (`HTTP 200`):** {len(leads)}",
         "",
     ]
@@ -154,7 +154,7 @@ def render_markdown_digest(
                 f"## {idx}. [{a.score:.0f}/100] {n.title}",
                 f"- **Fonte / CIG / Stato CRM:** `{n.source.value}` | `{cig_str}` | `{lead.crm_status.value}`",
                 f"- **Ente:** {n.contracting_authority}" + (f" (CUC: {n.delegated_authority})" if n.delegated_authority else ""),
-                f"- **Località:** {n.municipality or 'Sardegna'} ({n.province.value}) — {a.estimated_distance_km or 'N/D'} km da Silanus",
+                f"- **Località:** {n.municipality or 'Sardegna'} ({n.province.value}) — {a.estimated_distance_km or 'N/D'} km dal polo logistico",
                 f"- **Importo:** {_amount_line(lead)}",
                 f"- **Stato Cantiere:** {_site_status_label(lead)}",
             ]
@@ -163,7 +163,7 @@ def render_markdown_digest(
             lines.append(
                 f"- **Vincitore:** {n.winner_company}"
                 + (f" — P.IVA `{n.winner_tax_id}`" if n.winner_tax_id else "")
-                + (f" (sede {n.winner_province} ~{n.winner_distance_km} km da Silanus)" if n.winner_distance_km else "")
+                + (f" (sede {n.winner_province} ~{n.winner_distance_km} km dal polo logistico)" if n.winner_distance_km else "")
             )
         if n.rup_name:
             lines.append(f"- **RUP:** {n.rup_name}")
