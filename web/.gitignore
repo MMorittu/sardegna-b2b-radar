@@ -1,0 +1,12 @@
+# Next.js
+node_modules/
+.next/
+out/
+
+# Environment
+.env*.local
+.env
+
+# TypeScript
+*.tsbuildinfo
+

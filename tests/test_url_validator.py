@@ -57,3 +57,18 @@ class TestHttpUrlValidator:
         validator = HttpUrlValidator()
         valid_list = await validator.filter_valid_notices([notice])
         assert valid_list == []
+
+    async def test_filter_valid_notices_handles_timeout(self, httpx_mock: HTTPXMock) -> None:
+        import httpx
+
+        httpx_mock.add_exception(httpx.ReadTimeout("Connection timed out"))
+        notice = TenderNotice(
+            external_id="timeout-1",
+            source=NoticeSource.SARDEGNACAT,
+            title="Bando con timeout",
+            url="https://sardegnacat.regione.sardegna.it/portalegare/timeout",
+        )
+        validator = HttpUrlValidator()
+        valid_list = await validator.filter_valid_notices([notice])
+        assert valid_list == []
+
